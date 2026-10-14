@@ -1,26 +1,61 @@
-# Candidate kit
+# Employee Attendance & Analytics API
 
-Read in this order:
+A small backend built with Python, FastAPI and MongoDB. Employees punch in and out, managers can correct records, and the API gives attendance reports.
 
-1. `PROBLEM_STATEMENT.docx`: what you are asked to do, how it is evaluated.
-2. `openapi.yaml`: the API contract and the business rules (R1 - R10).
-3. `DATA_MODEL.md`: what is stored in MongoDB, with nine sample documents.
-4. `app/main.py`: the starter. Put **all** your code in this one file. It must start with `uvicorn app.main:app --port 8000`.
-5. `REVIEW.md`, `DECISIONS.md`: templates to fill in.
+## How to run
 
-`sample_data/` holds the nine sample documents as MongoDB Extended JSON; `sample_seed.py` loads them. The grader's dataset is
-much larger and contains cases they do not show.
+You need Python 3.11 or newer and MongoDB 6.0 or newer (the free MongoDB Atlas tier works).
 
-## Local setup
-```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env            # set MONGO_URI / MONGO_DB (local docker: docker run -p 27017:27017 mongo:7)
-python sample_seed.py
-uvicorn app.main:app --port 8000 --reload
-```
-MongoDB **6.0 or newer** is required (the grader uses 7.0). MongoDB Atlas free tier (M0) works.
+1. Install the packages:
 
-## Submit
-A public Git repository with `app/main.py`, `requirements.txt`, `REVIEW.md`, `DECISIONS.md` and a short `README.md`.
-No `.env`, no secrets, no Dockerfile.
+   pip install -r requirements.txt
+
+2. Set two environment variables:
+   - `MONGO_URI` – your MongoDB connection string
+   - `MONGO_DB` – the database name (for example `attendance_db`)
+
+   If they are not set, the app uses `mongodb://localhost:27017` and `attendance_db`.
+3. Start the server:
+
+   uvicorn app.main:app --port 8000
+
+   If `uvicorn` is not found, use `python -m uvicorn app.main:app --port 8000`.
+4. Open `http://127.0.0.1:8000/docs` to try the endpoints.
+
+The indexes are created automatically when the app starts. No manual steps are needed.
+
+Optional: `python sample_seed.py` loads the small sample data from the kit.
+
+## What is built
+
+All endpoints in the contract are written:
+
+- `GET /health`
+- `POST /employees`, `GET /employees`
+- `POST /attendance/punch-in`, `POST /attendance/punch-out`
+- `PATCH /attendance/{emp_code}/{date}` (manual correction with history)
+- `GET /attendance`
+- `GET /analytics/employees/{emp_code}/monthly`
+- `GET /analytics/departments/summary`
+- `GET /analytics/leaderboard/late`
+- `GET /analytics/departments/{department}/trend`
+- `GET /admin/explain/{endpoint}`
+
+I tested the main flows by hand in `/docs`. I did not test every edge case, and I did not test with 100,000 records.
+
+## How it works
+
+- Times are stored in UTC. The attendance date and shift times use IST. The API sends and receives times as epoch milliseconds.
+- Overnight shifts are handled: a punch-in after midnight can belong to the previous day's record.
+- Work hours are rounded to 2 decimals, half up.
+- Unique indexes stop duplicate employee codes and duplicate attendance records for the same employee and date. A duplicate returns 409.
+- The reports are MongoDB aggregation pipelines.
+
+## Known issues
+
+- The explain endpoint builds simplified versions of some queries, not exactly the same ones the analytics endpoints run.
+- The trend endpoint rounds with MongoDB's `$round`, which rounds exact ties to the even number. In rare cases this can differ from       half-up rounding.
+- Correction history times may not be converted to epoch milliseconds in every response.
+- Not tested: heavy concurrent requests and large data volumes.
+
+All code is in `app/main.py`. No `.env` file or secrets are in this repository.
