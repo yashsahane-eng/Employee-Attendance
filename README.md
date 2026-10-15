@@ -59,3 +59,7 @@ I tested the main flows by hand in `/docs`. I did not test every edge case, and 
 - Not tested: heavy concurrent requests and large data volumes.
 
 All code is in `app/main.py`. No `.env` file or secrets are in this repository.
+
+
+
+[![Architecture diagram of yashsahane-eng/employee-attendance](https://gitdiagram.com/yashsahane-eng/employee-attendance/diagram.png)](https://gitdiagram.com/yashsahane-eng/employee-attendance?utm_source=readme&utm_medium=picture)
